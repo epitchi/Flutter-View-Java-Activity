@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/show_keyboard"
+        android:title="@string/menu_show_keyboard" />
+
+    <item
+        android:id="@+id/show_stream_settings"
+        android:title="@string/category_stream_settings" />
+
+    <item
+        android:id="@+id/quit_stream"
+        android:title="@string/menu_quit_stream" />
+
+    <item
+        android:id="@+id/relaunch_game"
+        android:title="@string/menu_relaunch_game" />
+
+    <item
+        android:id="@+id/report_issue"
+        android:title="@string/menu_report_issue" />
+</menu>

@@ -20,7 +20,7 @@ class MainActivity: FlutterActivity() {
 
       MethodChannel(flutterView,CHANNEL).setMethodCallHandler{ call,result ->
         if(call.method.equals("StartSecondActivity")){
-          val intent=Intent(this, KotlinActivity::class.java)
+          val intent=Intent(this, JavaActivity::class.java)
           startActivity(intent)
           result.success("ActivityStarted")
         }

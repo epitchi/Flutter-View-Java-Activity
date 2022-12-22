@@ -1,0 +1,70 @@
+package com.example.flutter_view_java_activity;
+
+import com.example.flutter_view_java_activity.BuildConfig;
+import com.example.flutter_view_java_activity.backend.OneplayApi;
+
+import org.json.JSONException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
+
+
+public class LimeLog {
+    private static final Logger LOGGER = Logger.getLogger(LimeLog.class.getName());
+
+    public static void info(String msg) {
+        if (BuildConfig.DEBUG) {
+            LOGGER.info(msg);
+        }
+    }
+
+    public static void warning(Throwable throwable) {
+        warning("", throwable);
+    }
+
+    public static void warning(String msg, Throwable throwable) {
+        StringWriter errors = new StringWriter();
+        throwable.printStackTrace(new PrintWriter(errors));
+
+        msg = msg + "\n" + errors;
+
+        warning(msg);
+    }
+    
+    public static void warning(String msg) {
+        if (BuildConfig.DEBUG) {
+            LOGGER.warning(msg);
+        }
+    }
+
+    public static void severe(Throwable throwable) {
+        severe("", throwable);
+    }
+
+    public static void severe(String msg, Throwable throwable) {
+        StringWriter errors = new StringWriter();
+        throwable.printStackTrace(new PrintWriter(errors));
+
+        msg = msg + "\n" + errors;
+
+        severe(msg);
+    }
+    
+    public static void severe(String msg) {
+        if (BuildConfig.DEBUG) {
+            LOGGER.severe(msg);
+        } else {
+            new Thread(() -> {
+                try {
+                    OneplayApi.getInstance().registerEvent(msg);
+                } catch (IOException ignored) {} // TODO maybe need to implement a queue (send an event after a connection is established)
+            }).start();
+        }
+    }
+    
+    public static void setFileHandler(String fileName) throws IOException {
+        LOGGER.addHandler(new FileHandler(fileName));
+    }
+}

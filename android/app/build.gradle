@@ -24,14 +24,30 @@ if (flutterVersionName == null) {
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
+apply plugin: 'com.google.gms.google-services'
+apply plugin: 'com.google.firebase.crashlytics'
+
+ext {
+    buildNumber = (Long) (System.currentTimeMillis() / 1000L)
+    defaultVersionName = '1.1.2'
+}
+
 
 android {
-    compileSdkVersion flutter.compileSdkVersion
+    ndkVersion "23.2.8568313"
+    compileSdkVersion 33
     ndkVersion flutter.ndkVersion
 
+    externalNativeBuild {
+        ndkBuild {
+            path "src/main/jni/Android.mk"
+        }
+    }
+
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility JavaVersion.VERSION_1_9
+        targetCompatibility JavaVersion.VERSION_1_9
     }
 
     kotlinOptions {
@@ -47,17 +63,146 @@ android {
         applicationId "com.example.flutter_view_java_activity"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-build-configuration.
-        minSdkVersion 16
-        targetSdkVersion 31
+        minSdkVersion 23
+        targetSdkVersion 33
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        ndk.debugSymbolLevel = 'FULL'
+    }
+
+    signingConfigs {
+        test {
+            storeFile file('../test-keystore.jks')
+            storePassword '123456'
+            keyAlias 'test'
+            keyPassword '123456'
+        }
+    }
+
+    flavorDimensions.add("root")
+
+    productFlavors {
+        root {
+            // Android O has native mouse capture, so don't show the rooted
+            // version to devices running O on the Play Store.
+            maxSdk 25
+
+            externalNativeBuild {
+                ndkBuild {
+                    arguments "PRODUCT_FLAVOR=root"
+                }
+            }
+
+            applicationId "in.oneplay.root"
+            dimension "root"
+//            archivesBaseName = "$applicationId.$project.name-$defaultVersionName-$buildNumber"
+            buildConfigField "boolean", "ROOT_BUILD", "true"
+        }
+
+        nonRoot {
+            externalNativeBuild {
+                ndkBuild {
+                    arguments "PRODUCT_FLAVOR=nonRoot"
+                }
+            }
+
+            applicationId "in.oneplay"
+            dimension "root"
+//            archivesBaseName = "$applicationId.$project.name-$defaultVersionName-$buildNumber"
+            buildConfigField "boolean", "ROOT_BUILD", "false"
+        }
+    }
+
+
+    lint {
+        disable 'MissingTranslation'
+        lintConfig file('lint.xml')
+    }
+
+    bundle {
+        language {
+            // Avoid splitting by language, since we allow users
+            // to manually switch language in settings.
+            enableSplit = false
+        }
+        density {
+            // FIXME: This should not be necessary but we get
+            // weird crashes due to missing drawable resources
+            // when this split is enabled.
+            enableSplit = false
+        }
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            resValue "string", "app_label", "Oneplay (Debug)"
+            resValue "string", "app_label_root", "Oneplay (Root Debug)"
+
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            firebaseCrashlytics {
+                mappingFileUploadEnabled false
+            }
+
+            def apiVersion =  "v0"
+
+            buildConfigField "String", "DOMAIN", "\"www.oneplay.in\""
+            buildConfigField "String", "CONNECTION_SCHEME", "\"https\""
+            buildConfigField "String", "SHORT_VERSION_NAME", "\"${defaultVersionName}\""
+            buildConfigField "String", "USER_AGENT", "\"OnePlayAndroid/V${defaultVersionName}\""
+            buildConfigField "String", "SERVER_DEFAULT_IP_ADDRESS", "\"43.239.110.82\""
+            buildConfigField "int", "SERVER_DEFAULT_CONNECTION_TIMEOUT", "3000"
+            buildConfigField "int", "SERVER_DEFAULT_READ_TIMEOUT", "5000"
+            buildConfigField "String", "APP_WELCOME_LINK_PATH", "\"\""
+            buildConfigField "String", "APP_WELCOME_LINK_QUERY", "\"\""
+            buildConfigField "String", "APP_LAUNCH_LINK_PATH", "\"/launch/app\""
+            buildConfigField "String", "APP_QUIT_LINK_PATH", "\"/client/quit\""
+            buildConfigField "String", "APP_CONNECTIVITY_TEST_CHECK_DOMAIN", "\"clientconnectivity.ping.oneplay.in\""
+            buildConfigField "String", "API_DOMAIN", "\"svrdev.oneplay.in\""
+            buildConfigField "String", "API_START_VM_ENDPOINT", "\"/${apiVersion}/frontend/start_game\""
+            buildConfigField "String", "API_GET_SESSION_ENDPOINT", "\"/${apiVersion}/client/get_session\""
+            buildConfigField "String", "API_EVENTS_ENDPOINT", "\"/backend/events/register\""
+            buildConfigField "String", "API_STATS_ENDPOINT", "\"/${apiVersion}/client/post_log\""
+
+            signingConfig signingConfigs.test
+        }
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig signingConfigs.debug
+            applicationIdSuffix ""
+            resValue "string", "app_label", "Oneplay"
+            resValue "string", "app_label_root", "Oneplay (Root)"
+
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            firebaseCrashlytics {
+                mappingFileUploadEnabled true
+            }
+
+            def apiVersion = "v2"
+
+            buildConfigField "String", "DOMAIN", "\"www.oneplay.in\""
+            buildConfigField "String", "CONNECTION_SCHEME", "\"https\""
+            buildConfigField "String", "SHORT_VERSION_NAME", "\"${defaultVersionName}\""
+            buildConfigField "String", "USER_AGENT", "\"OnePlayAndroid/V${defaultVersionName}\""
+            buildConfigField "String", "SERVER_DEFAULT_IP_ADDRESS", "\"\""
+            buildConfigField "int", "SERVER_DEFAULT_CONNECTION_TIMEOUT", "3000"
+            buildConfigField "int", "SERVER_DEFAULT_READ_TIMEOUT", "5000"
+            buildConfigField "String", "APP_WELCOME_LINK_PATH", "\"/dashboard\""
+            buildConfigField "String", "APP_WELCOME_LINK_QUERY", "\"\""
+            buildConfigField "String", "APP_LAUNCH_LINK_PATH", "\"/launch/app\""
+            buildConfigField "String", "APP_QUIT_LINK_PATH", "\"/client/quit\""
+            buildConfigField "String", "APP_CONNECTIVITY_TEST_CHECK_DOMAIN", "\"clientconnectivity.ping.oneplay.in\""
+            buildConfigField "String", "API_DOMAIN", "\"client-apis.oneplay.in\""
+            buildConfigField "String", "API_START_VM_ENDPOINT", "\"/\""
+            buildConfigField "String", "API_GET_SESSION_ENDPOINT", "\"/client/${apiVersion}/get_session\""
+            buildConfigField "String", "API_EVENTS_ENDPOINT", "\"/backend/events/register\""
+            buildConfigField "String", "API_STATS_ENDPOINT", "\"/client/${apiVersion}/post_log\""
+
+            firebaseCrashlytics {
+                nativeSymbolUploadEnabled true
+            }
+
+            signingConfig signingConfigs.test
         }
     }
 }
@@ -73,4 +218,19 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
     implementation 'androidx.appcompat:appcompat:1.1.0'
+
+    implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
+    implementation 'org.bouncycastle:bcpkix-jdk15on:1.70'
+    implementation 'org.jcodec:jcodec:0.2.3'
+    implementation 'com.squareup.okhttp3:okhttp:4.9.3'
+    implementation 'com.squareup.okio:okio:2.8.0'
+    implementation 'org.jmdns:jmdns:3.5.7'
+    implementation 'com.github.cgutman:ShieldControllerExtensions:1.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.9.3'
+    implementation 'org.jsoup:jsoup:1.14.3'
+    implementation platform('com.google.firebase:firebase-bom:29.3.1')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-crashlytics-ndk'
+    implementation 'com.google.android.play:app-update:2.0.0'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.1.5'
 }
